@@ -11,10 +11,13 @@ TBitField::TBitField(int len)
 {
 	if (len <= 0)
 		throw exception("incorrect length");
-	BitLen = len;
-	MemLen = 1 + BitLen / (sizeof(TELEM) * 8);
-	pMem = new TELEM[MemLen];
-	memset(pMem, 0, MemLen * sizeof(TELEM));
+	else
+	{
+		BitLen = len;
+		MemLen = BitLen / (sizeof(TELEM) * 8) + (BitLen % (sizeof(TELEM) * 8) != 0);
+		pMem = new TELEM[MemLen];
+		memset(pMem, 0, MemLen * sizeof(TELEM));
+	}
 }
 
 TBitField::TBitField(const TBitField& bf) // конструктор копирования
@@ -75,13 +78,16 @@ int TBitField::GetBit(const int n) const // получить значение б
 
 TBitField& TBitField::operator=(const TBitField& bf) // присваивание
 {
-	if (pMem != nullptr)
-		delete[] pMem;
-	BitLen = bf.BitLen;
-	MemLen = bf.MemLen;
-	pMem = new TELEM[MemLen];
-	for (int i = 0; i < MemLen; i++)
-		pMem[i] = bf.pMem[i];
+	if (this != &bf)
+	{
+		if (pMem != nullptr)
+			delete[] pMem;
+		BitLen = bf.BitLen;
+		MemLen = bf.MemLen;
+		pMem = new TELEM[MemLen];
+		for (int i = 0; i < MemLen; i++)
+			pMem[i] = bf.pMem[i];
+	}
 	return *this;
 }
 
@@ -126,6 +132,8 @@ TBitField TBitField::operator&(const TBitField& bf) // операция "и"
 		TBitField tmp(*this);
 		for (int i = 0; i < bf.MemLen; i++)
 			tmp.pMem[i] &= bf.pMem[i];
+		for (int i = BitLen; i < MemLen * 8; i++)        // обнуление хвооста
+			tmp.pMem[GetMemIndex(i)] &= ~GetMemMask(i);  // ClrBit() не получится использовать т.к. инндекс больше чем BitLen
 		return tmp;
 	}
 	else
@@ -133,6 +141,10 @@ TBitField TBitField::operator&(const TBitField& bf) // операция "и"
 		TBitField tmp(bf);
 		for (int i = 0; i < MemLen; i++)
 			tmp.pMem[i] &= pMem[i];
+
+		for (int i = bf.BitLen; i < bf.MemLen * 8; i++)  // обнуление хвооста
+			tmp.pMem[GetMemIndex(i)] &= ~GetMemMask(i);  // ClrBit() не получится использовать т.к. инндекс больше чем BitLen
+
 		return tmp;
 	}
 }
